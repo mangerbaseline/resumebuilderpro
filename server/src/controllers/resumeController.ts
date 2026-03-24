@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import Resume from '../models/Resume';
 import puppeteer from 'puppeteer';
+import fs from "fs";
+
 import { modernTemplate, professionalTemplate, creativeTemplate, simpleTemplate } from '../templates';
 
 // Template Registry
@@ -292,10 +294,16 @@ export const generatePDF = async (req: Request, res: Response) => {
 
  
 
-// Use the path from Render's Puppeteer cache
+
+
+const chromePath = puppeteer.executablePath();
+if (!fs.existsSync(chromePath)) {
+  throw new Error(`Chrome not found at ${chromePath}`);
+}
+
 const browser = await puppeteer.launch({
   headless: true,
-  executablePath:  puppeteer.executablePath(),
+  executablePath: chromePath,
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
         const page = await browser.newPage();
