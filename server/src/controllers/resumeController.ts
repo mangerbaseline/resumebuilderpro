@@ -277,23 +277,104 @@ export const getResumeBySlug = async (req: Request, res: Response) => {
 
 
 
-import { isChromeReady } from '../app';
 
-// Wait for Chrome to be ready (max 60s)
-const waitForChrome = async () => {
-  let attempts = 0;
-  while (!isChromeReady && attempts < 60) {
-    await new Promise(r => setTimeout(r, 1000));
-    attempts++;
-  }
-  if (!isChromeReady) throw new Error('Chrome not ready yet, try again in a moment');
-};
+
 
 // @desc    Generate PDF using Puppeteer
 // @route   GET /api/resumes/:id/pdf
 // @access  Private
+// export const generatePDF = async (req: Request, res: Response) => {
+//     await waitForChrome();
+//     try {
+//         const resume = await Resume.findById(req.params.id);
+//         if (!resume) return res.status(404).json({ message: 'Resume not found' });
+
+//         // @ts-ignore
+//         if (resume.user.toString() !== req.user._id.toString()) {
+//             return res.status(401).json({ message: 'Not authorized' });
+//         }
+
+//         const templateId = resume.selectedTemplate || 'modern';
+//         const templateFn = TEMPLATES[templateId] || TEMPLATES['modern'];
+//         const htmlContent = templateFn(resume.data);
+
+
+
+
+
+//         const chromePath = 
+//   process.env.PUPPETEER_EXECUTABLE_PATH ||
+//   '/opt/render/.cache/puppeteer/chrome/linux-146.0.7680.66/chrome-linux64/chrome';
+
+// if (!fs.existsSync(chromePath)) {
+//   throw new Error(`Chrome not found at: ${chromePath}`);
+// }
+
+// const browser = await puppeteer.launch({
+//   headless: true,
+//   executablePath: chromePath,
+//   args: [
+   
+//     '--no-sandbox',
+//     '--disable-setuid-sandbox',
+//     '--disable-dev-shm-usage',
+//     '--disable-gpu',
+//     '--no-zygote',
+//     '--single-process',        // most important for low-memory environments
+//     '--disable-extensions',
+//     '--disable-software-rasterizer',
+//     '--disable-background-networking',
+//     '--disable-default-apps',
+//     '--mute-audio',
+//     '--no-first-run',
+  
+//   ],
+// });
+//         const page = await browser.newPage();
+
+//         // Set viewport to match A4 proportions at 96 DPI
+//         await page.setViewport({
+//             width: 794,
+//             height: 1123,
+//             deviceScaleFactor: 1, // 1:1 pixel parity
+//         });
+
+//         await page.setContent(htmlContent, {
+//             waitUntil: ['networkidle0', 'load', 'domcontentloaded'],
+//             timeout: 60000 
+//         });
+
+//         // Ensure fonts are loaded and layout is settled
+//         await page.evaluateHandle('document.fonts.ready');
+//         await new Promise(resolve => setTimeout(resolve, 500)); // Small settle delay
+
+//         const pdfBuffer = await page.pdf({
+//             format: 'A4',
+//             printBackground: true,
+//             margin: {
+//                 top: '0px',
+//                 bottom: '0px',
+//                 left: '0px',
+//                 right: '0px'
+//             },
+//             scale: 1,
+//             preferCSSPageSize: true,
+//             displayHeaderFooter: false
+//         });
+
+//         await browser.close();
+
+//         // Stream PDF to client
+//         res.setHeader('Content-Type', 'application/pdf');
+//         res.setHeader('Content-Disposition', `attachment; filename="${resume.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf"`);
+//         res.status(200).send(pdfBuffer);
+
+//     } catch (error: any) {
+//         console.error('PDF Generation Error:', error);
+//         res.status(500).json({ message: 'Failed to generate PDF', error: error.message });
+//     }
+// };
 export const generatePDF = async (req: Request, res: Response) => {
-    await waitForChrome();
     try {
         const resume = await Resume.findById(req.params.id);
         if (!resume) return res.status(404).json({ message: 'Resume not found' });
@@ -307,55 +388,25 @@ export const generatePDF = async (req: Request, res: Response) => {
         const templateFn = TEMPLATES[templateId] || TEMPLATES['modern'];
         const htmlContent = templateFn(resume.data);
 
+        const browser = await puppeteer.connect({
+            browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_TOKEN}`,
+        });
 
-
-
-
-        const chromePath = 
-  process.env.PUPPETEER_EXECUTABLE_PATH ||
-  '/opt/render/.cache/puppeteer/chrome/linux-146.0.7680.66/chrome-linux64/chrome';
-
-if (!fs.existsSync(chromePath)) {
-  throw new Error(`Chrome not found at: ${chromePath}`);
-}
-
-const browser = await puppeteer.launch({
-  headless: true,
-  executablePath: chromePath,
-  args: [
-   
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--no-zygote',
-    '--single-process',        // most important for low-memory environments
-    '--disable-extensions',
-    '--disable-software-rasterizer',
-    '--disable-background-networking',
-    '--disable-default-apps',
-    '--mute-audio',
-    '--no-first-run',
-  
-  ],
-});
         const page = await browser.newPage();
 
-        // Set viewport to match A4 proportions at 96 DPI
         await page.setViewport({
             width: 794,
             height: 1123,
-            deviceScaleFactor: 1, // 1:1 pixel parity
+            deviceScaleFactor: 1,
         });
 
         await page.setContent(htmlContent, {
             waitUntil: ['networkidle0', 'load', 'domcontentloaded'],
-            timeout: 60000 
+            timeout: 60000
         });
 
-        // Ensure fonts are loaded and layout is settled
         await page.evaluateHandle('document.fonts.ready');
-        await new Promise(resolve => setTimeout(resolve, 500)); // Small settle delay
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         const pdfBuffer = await page.pdf({
             format: 'A4',
@@ -373,7 +424,6 @@ const browser = await puppeteer.launch({
 
         await browser.close();
 
-        // Stream PDF to client
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${resume.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf"`);
         res.status(200).send(pdfBuffer);
