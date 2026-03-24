@@ -292,7 +292,7 @@ export const generatePDF = async (req: Request, res: Response) => {
 
         // Launch Puppeteer
     const browser = await puppeteer.launch({
-  headless: "new " as any,
+  headless: "new" as any,
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
         const page = await browser.newPage();
