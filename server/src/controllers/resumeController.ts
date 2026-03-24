@@ -296,22 +296,24 @@ export const generatePDF = async (req: Request, res: Response) => {
 
 
 
-        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
+        const chromePath = 
+  process.env.PUPPETEER_EXECUTABLE_PATH ||
+  '/opt/render/.cache/puppeteer/chrome/linux-146.0.7680.66/chrome-linux64/chrome';
 
-        if (!fs.existsSync(chromePath)) {
-            throw new Error(`Chrome not found at: ${chromePath}`);
-        }
+if (!fs.existsSync(chromePath)) {
+  throw new Error(`Chrome not found at: ${chromePath}`);
+}
 
-        const browser = await puppeteer.launch({
-            headless: true,
-            executablePath: chromePath,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-            ],
-        });
+const browser = await puppeteer.launch({
+  headless: true,
+  executablePath: chromePath,
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+  ],
+});
         const page = await browser.newPage();
 
         // Set viewport to match A4 proportions at 96 DPI
