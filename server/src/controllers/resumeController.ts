@@ -290,9 +290,12 @@ export const generatePDF = async (req: Request, res: Response) => {
         const templateFn = TEMPLATES[templateId] || TEMPLATES['modern'];
         const htmlContent = templateFn(resume.data);
 
-        // Launch Puppeteer
-    const browser = await puppeteer.launch({
-  headless: "new" as any,
+ 
+
+// Use the path from Render's Puppeteer cache
+const browser = await puppeteer.launch({
+  headless: true,
+  executablePath:  puppeteer.executablePath(),
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
         const page = await browser.newPage();
