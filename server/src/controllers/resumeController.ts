@@ -156,7 +156,7 @@ export const updateResume = async (req: Request, res: Response) => {
             // The phrasing "cannot even edit there previous resumes" sounds like once they reach the limit, EVERYTHING is locked? 
             // Let's re-read: "allow each user to create 2 resumes using our template for free and then a user cannot access the reusme templates to create new resume and cannot even edit there previous resumes"
             // This probably means once you have 2, you are stuck with them. If you want to create or EDIT anything, you need to subscribe.
-            
+
             if (!user.isSubscribed && resumeCount >= 2) {
                 // We should probably allow them to edit the first 2 resumes they created?
                 // But the user said "cannot even edit there previous resumes".
@@ -164,14 +164,14 @@ export const updateResume = async (req: Request, res: Response) => {
                 // But wait, if I have 2 resumes, I should be able to edit them, right?
                 // "cannot access the reusme templates to create new resume and cannot even edit there previous resumes only allow downloaded previous made resumes"
                 // This sounds like once they reach the limit, editing is also blocked.
-                
+
                 // Let's implement it such that if they have >= 2 resumes and are NOT subscribed, editing is blocked.
                 // But this makes the 2 free resumes useless after the first save!
                 // Maybe the user means "once you have 2 resumes, you can't create a 3rd, and if you are NOT subscribed, you can't edit them anymore"? 
                 // That seems very restrictive. Usually, you can edit your free ones.
                 // Re-reading: "2 resumes ... for free and then ... cannot ... edit there previous resumes".
                 // Okay, I'll follow the user's specific instruction. No editing for free users if they have >= 2 resumes.
-                
+
                 return res.status(403).json({
                     message: 'Editing is locked for free users with 2 or more resumes. Please upgrade to Pro to edit or create more.',
                     limitReached: true
@@ -292,20 +292,26 @@ export const generatePDF = async (req: Request, res: Response) => {
         const templateFn = TEMPLATES[templateId] || TEMPLATES['modern'];
         const htmlContent = templateFn(resume.data);
 
- 
 
 
 
-const chromePath = puppeteer.executablePath();
-if (!fs.existsSync(chromePath)) {
-  throw new Error(`Chrome not found at ${chromePath}`);
-}
 
-const browser = await puppeteer.launch({
-  headless: true,
-  executablePath: chromePath,
-  args: ["--no-sandbox", "--disable-setuid-sandbox"],
-});
+        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
+
+        if (!fs.existsSync(chromePath)) {
+            throw new Error(`Chrome not found at: ${chromePath}`);
+        }
+
+        const browser = await puppeteer.launch({
+            headless: true,
+            executablePath: chromePath,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+            ],
+        });
         const page = await browser.newPage();
 
         // Set viewport to match A4 proportions at 96 DPI
