@@ -39,22 +39,37 @@ app.use('/api/jobs', jobRoutes);
 app.use("/api", feedbackRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Install Chrome at startup if missing
+// Install Chrome asynchronously at startup
 const chromePath = '/opt/render/.cache/puppeteer/chrome/linux-146.0.7680.66/chrome-linux64/chrome';
-if (!fs.existsSync(chromePath)) {
-  console.log('Chrome not found, installing...');
-  execSync('npx puppeteer browsers install chrome', { 
-    stdio: 'inherit',
-    env: { ...process.env, PUPPETEER_CACHE_DIR: '/opt/render/.cache/puppeteer' }
-  });
-  console.log('Chrome installed successfully');
+
+async function installChromeIfMissing() {
+  if (!fs.existsSync(chromePath)) {
+    console.log('Chrome not found, installing...');
+    await new Promise<void>((resolve, reject) => {
+      const child = require('child_process').spawn(
+        'npx', ['puppeteer', 'browsers', 'install', 'chrome'],
+        { 
+          stdio: 'inherit',
+          env: { ...process.env, PUPPETEER_CACHE_DIR: '/opt/render/.cache/puppeteer' }
+        }
+      );
+      child.on('close', (code: number) => {
+        if (code === 0) {
+          console.log('Chrome installed successfully');
+          resolve();
+        } else {
+          reject(new Error(`Chrome install failed with code ${code}`));
+        }
+      });
+    });
+  }
 }
 
-// Database Connection
 connectDB();
 
+// Start server first, install Chrome in background
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    installChromeIfMissing().catch(console.error);
 });
-
 
