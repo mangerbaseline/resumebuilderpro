@@ -308,10 +308,20 @@ const browser = await puppeteer.launch({
   headless: true,
   executablePath: chromePath,
   args: [
+   
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--disable-gpu',
+    '--no-zygote',
+    '--single-process',        // most important for low-memory environments
+    '--disable-extensions',
+    '--disable-software-rasterizer',
+    '--disable-background-networking',
+    '--disable-default-apps',
+    '--mute-audio',
+    '--no-first-run',
+  
   ],
 });
         const page = await browser.newPage();
