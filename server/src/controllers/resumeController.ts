@@ -275,10 +275,25 @@ export const getResumeBySlug = async (req: Request, res: Response) => {
     }
 };
 
+
+
+import { isChromeReady } from '../app';
+
+// Wait for Chrome to be ready (max 60s)
+const waitForChrome = async () => {
+  let attempts = 0;
+  while (!isChromeReady && attempts < 60) {
+    await new Promise(r => setTimeout(r, 1000));
+    attempts++;
+  }
+  if (!isChromeReady) throw new Error('Chrome not ready yet, try again in a moment');
+};
+
 // @desc    Generate PDF using Puppeteer
 // @route   GET /api/resumes/:id/pdf
 // @access  Private
 export const generatePDF = async (req: Request, res: Response) => {
+    await waitForChrome();
     try {
         const resume = await Resume.findById(req.params.id);
         if (!resume) return res.status(404).json({ message: 'Resume not found' });
@@ -334,7 +349,8 @@ const browser = await puppeteer.launch({
         });
 
         await page.setContent(htmlContent, {
-            waitUntil: ['networkidle0', 'load', 'domcontentloaded']
+            waitUntil: ['networkidle0', 'load', 'domcontentloaded'],
+            timeout: 60000 
         });
 
         // Ensure fonts are loaded and layout is settled

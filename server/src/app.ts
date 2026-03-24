@@ -12,6 +12,8 @@ import jobRoutes from './routes/jobRoutes';
 import subscriptionRoutes from './routes/subscriptionRoutes';
 import feedbackRoutes from "./routes/feedbackRoutes";
 import adminRoutes from './routes/adminRoutes';
+export let isChromeReady = false;
+
 
 import fs from 'fs';
 const app: Application = express();
@@ -68,8 +70,11 @@ async function installChromeIfMissing() {
 connectDB();
 
 // Start server first, install Chrome in background
+
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    installChromeIfMissing().catch(console.error);
+    installChromeIfMissing().then(() => {
+        isChromeReady = true;
+    }).catch(console.error);
 });
-
