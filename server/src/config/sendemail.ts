@@ -1,12 +1,9 @@
 // src/config/sendEmail.ts
 
-import nodemailer from 'nodemailer';
 import { google } from 'googleapis';
 
-const OAuth2 = google.auth.OAuth2;
-
-const createTransporter = async () => {
-  const oauth2Client = new OAuth2(
+const getGmailService = async () => {
+  const oauth2Client = new google.auth.OAuth2(
     process.env.CLIENT_ID,
     process.env.CLIENT_SECRET,
     'https://developers.google.com/oauthplayground'
@@ -16,19 +13,21 @@ const createTransporter = async () => {
     refresh_token: process.env.REFRESH_TOKEN,
   });
 
-  const accessToken = await oauth2Client.getAccessToken();
+  return google.gmail({ version: 'v1', auth: oauth2Client });
+};
 
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      type: 'OAuth2',
-      user: process.env.EMAIL_USER,
-      clientId: process.env.CLIENT_ID,
-      clientSecret: process.env.CLIENT_SECRET,
-      refreshToken: process.env.REFRESH_TOKEN,
-      accessToken: accessToken.token as string,
-    },
-  });
+const encodeMessage = (to: string, subject: string, message: string) => {
+  const rawMessage = [
+    `From: Resume Builder <${process.env.EMAIL_USER}>`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/plain; charset=utf-8`,
+    ``,
+    message,
+  ].join('\n');
+
+  return Buffer.from(rawMessage).toString('base64url');
 };
 
 interface EmailOptions {
@@ -38,13 +37,15 @@ interface EmailOptions {
 }
 
 const sendEmail = async (options: EmailOptions) => {
-  const transporter = await createTransporter();
+  const gmail = await getGmailService();
 
-  await transporter.sendMail({
-    from: `Resume Builder <${process.env.EMAIL_USER}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
+  const encodedMessage = encodeMessage(options.email, options.subject, options.message);
+
+  await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: {
+      raw: encodedMessage,
+    },
   });
 };
 
