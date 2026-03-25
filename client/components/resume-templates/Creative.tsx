@@ -42,7 +42,7 @@ export const CreativeTemplate = ({ data }: { data: any }) => {
                         <span style={{ color: '#facc15' }}>{lastName}</span>
                     </h1>
                     <div style={{ background: '#facc15', color: '#0f172a', display: 'inline-block', padding: '3px 8px', fontWeight: 900, marginTop: '8px', fontSize: `${Math.round(10 * s)}px`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        {personalInfo?.jobTitle || 'Creative Force'}
+                        {personalInfo?.jobTitle }
                     </div>
                 </div>
                 <div style={{ fontSize: `${Math.round(10 * s)}px`, fontWeight: 900, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.1em', textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -139,8 +139,8 @@ export const CreativeTemplate = ({ data }: { data: any }) => {
                                 if (customSec) {
                                     return (
                                         <section key={customSec.id} style={{ pageBreakInside: 'avoid', marginBottom: '14px' }}>
-                                            <div className="h-section text-[#0f172a] font-black italic uppercase border-b-[3px] border-yellow-400 mb-[6px] inline-block pb-0.5 tracking-tighter" style={{ fontSize: `${Math.round(18 * s)}px` }}>{customSec.title}.</div>
-                                            <p className="description" style={{ fontSize: `${Math.round(11 * s)}px`, lineHeight: 1.5, color: '#475569', whiteSpace: 'pre-wrap', fontWeight: 500 }}>{customSec.content}</p>
+                                            <div className="h-section text-[#0f172a] font-black  uppercase border-b-[3px] border-yellow-400 mb-[6px] inline-block pb-0.5 tracking-tighter" style={{ fontSize: `${Math.round(14 * s)}px` }}>{customSec.title}.</div>
+                                            <p className="description" style={{ fontSize: `${Math.round(12 * s)}px`, lineHeight: 1.5, color: '#475569', whiteSpace: 'pre-wrap', fontWeight: 500 }}>{customSec.content}</p>
                                         </section>
                                     );
                                 }
