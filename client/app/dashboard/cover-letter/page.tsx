@@ -23,6 +23,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 interface Resume {
     _id: string;
@@ -84,7 +85,13 @@ export default function CoverLetterPage() {
                 jobDescription
             });
 
-            setGeneratedCoverLetter(response.data.coverLetter);
+            // Convert plain text to HTML with paragraphs
+            const formattedContent = response.data.coverLetter
+                .split('\n\n')
+                .map((para: string) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+                .join('');
+
+            setGeneratedCoverLetter(formattedContent);
             toast.success("Cover letter generated!", { id: toastId });
         } catch (error: any) {
             const message = error.response?.data?.message || "Failed to generate cover letter";
@@ -94,16 +101,24 @@ export default function CoverLetterPage() {
         }
     };
 
+    const stripHtml = (html: string) => {
+        if (typeof window === "undefined") return html;
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        return doc.body.textContent || "";
+    };
+
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(generatedCoverLetter);
+        const text = stripHtml(generatedCoverLetter);
+        navigator.clipboard.writeText(text);
         setCopied(true);
         toast.success("Copied to clipboard!");
         setTimeout(() => setCopied(false), 2000);
     };
 
     const downloadTxt = () => {
+        const text = stripHtml(generatedCoverLetter);
         const element = document.createElement("a");
-        const file = new Blob([generatedCoverLetter], { type: 'text/plain' });
+        const file = new Blob([text], { type: 'text/plain' });
         element.href = URL.createObjectURL(file);
         element.download = `${companyName || 'Cover_Letter'}.txt`;
         document.body.appendChild(element);
@@ -144,7 +159,7 @@ export default function CoverLetterPage() {
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="space-y-8"
+                        className="space-y-8 input-panel no-print"
                     >
                         <div className="space-y-2">
                             <h2 className="text-3xl font-black tracking-tighter">Your Profile & Target</h2>
@@ -236,7 +251,7 @@ export default function CoverLetterPage() {
                     <motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="flex flex-col h-full"
+                        className="flex flex-col h-full result-panel"
                     >
                         <div className="mb-8 flex items-center justify-between">
                             <h2 className="text-3xl font-black tracking-tighter">Your Cover Letter</h2>
@@ -250,6 +265,14 @@ export default function CoverLetterPage() {
                                     >
                                         {copied ? <CheckCircle2 size={16} className="text-green-500" /> : <Copy size={16} />}
                                         {copied ? "Copied" : "Copy"}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.print()}
+                                        className="rounded-xl h-10 px-4 gap-2 border-border"
+                                    >
+                                        <Download size={16} /> Print/PDF
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -299,19 +322,20 @@ export default function CoverLetterPage() {
                                         key="result"
                                         initial={{ opacity: 0, scale: 0.98 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        className="h-full min-h-[500px] flex flex-col rounded-3xl border border-border bg-card dark:bg-[#0c0c0e] shadow-2xl overflow-hidden group"
+                                        className="h-full min-h-[500px] flex flex-col group"
                                     >
-                                        <div className="p-4 bg-muted/50 dark:bg-slate-900/50 border-b border-border flex items-center justify-between">
+                                        <div className="p-4 bg-muted/50 dark:bg-slate-900/50 border-x border-t border-border rounded-t-3xl flex items-center justify-between">
                                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic">Interactive Workspace</span>
                                             <span className="text-[10px] text-muted-foreground font-medium underline cursor-help">Perfectly tailored for success</span>
                                         </div>
-                                        <textarea
-                                            value={generatedCoverLetter}
-                                            onChange={(e) => setGeneratedCoverLetter(e.target.value)}
-                                            className="w-full flex-1 p-8 text-base leading-[1.8] font-medium bg-transparent outline-none resize-none selection:bg-primary/20"
-                                            spellCheck={true}
-                                        />
-                                        <div className="p-6 bg-muted/30 dark:bg-slate-900/30 border-t border-border flex items-center justify-center gap-4">
+                                        <div className="flex-1 bg-card dark:bg-[#0c0c0e] border-x border-border">
+                                            <RichTextEditor
+                                                content={generatedCoverLetter}
+                                                onChange={setGeneratedCoverLetter}
+                                                placeholder="Your AI generated cover letter will appear here..."
+                                            />
+                                        </div>
+                                        <div className="p-6 bg-muted/30 dark:bg-slate-900/30 border border-border rounded-b-3xl flex items-center justify-center gap-4 no-print">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -328,6 +352,31 @@ export default function CoverLetterPage() {
                     </motion.div>
                 </div>
             </main>
+            <style jsx global>{`
+                @media print {
+                    header, footer, nav, button, .no-print, .input-panel {
+                        display: none !important;
+                    }
+                    main {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                    }
+                    .result-panel {
+                        width: 100% !important;
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                    }
+                    .tiptap {
+                        padding: 0 !important;
+                        border: none !important;
+                        font-size: 12pt;
+                        line-height: 1.5;
+                        color: black;
+                        background: white;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
