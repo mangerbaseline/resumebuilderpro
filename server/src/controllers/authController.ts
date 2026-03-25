@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import bcrypt from 'bcryptjs'; // Need to install this
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import sendEmail from '../config/sendemail';
+
 
 // Add interface for Request with user
 interface AuthRequest extends Request {
@@ -103,12 +106,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
 // @route   POST /api/auth/refresh
 // @access  Private
 export const refreshToken = async (req: AuthRequest, res: Response) => {
-    // If we are here, the token is valid (protected route) or we need logical check.
-    // For simple JWT, we just issue a new one if the current one is valid.
-    // Ideally usage: Client checks expiry, if close, calls refresh.
 
-    // In a more complex setup, we might verify a separate refresh token from body.
-    // But per requirements "POST /api/auth/refresh", and existing simple JWT:
 
     if (req.user) {
         res.status(200).json({
@@ -120,6 +118,103 @@ export const refreshToken = async (req: AuthRequest, res: Response) => {
     } else {
         res.status(401).json({ message: 'Not authorized' });
     }
+};
+
+// @desc    Forgot password
+// @route   POST /api/auth/forgotpassword
+// @access  Public
+export const forgotPassword = async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(20).toString('hex');
+
+        // Hash token and set to resetPasswordToken field
+        user.resetPasswordToken = crypto
+            .createHash('sha256')
+            .update(resetToken)
+            .digest('hex');
+
+        // Set expire (10 minutes)
+        user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000);
+
+        await user.save();
+
+        // Create reset URL
+        const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+
+       
+
+const message = `
+You are receiving this email because you requested a password reset.
+
+Click the link below to reset your password (valid for 10 minutes):
+
+${resetUrl}
+
+If you did not request this, please ignore this email and your password will remain unchanged.
+`;
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: 'Password reset token',
+                message,
+            });
+
+            res.status(200).json({ success: true, data: 'Email sent' });
+        } catch (error) {
+            console.log(error);
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpire = undefined;
+
+            await user.save();
+
+            return res.status(500).json({ message: 'Email could not be sent' });
+        }
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Reset password
+// @route   PUT /api/auth/resetpassword/:resettoken
+// @access  Public
+export const resetPassword = async (req: Request, res: Response) => {
+    // Get hashed token
+    const resetPasswordToken = crypto
+        .createHash('sha256')
+        .update(req.params.resettoken)
+        .digest('hex');
+
+    const user = await User.findOne({
+        resetPasswordToken,
+        resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+        return res.status(400).json({ message: 'Invalid token or token expired' });
+    }
+
+    // Set new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(req.body.password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.status(200).json({
+        success: true,
+        data: 'Password reset success',
+        token: generateToken(user._id.toString()),
+    });
 };
 
 const generateToken = (id: string) => {

@@ -10,6 +10,8 @@ export interface IUser extends Document {
     isSubscribed: boolean;
     stripeCustomerId?: string;
     stripeSubscriptionId?: string;
+    resetPasswordToken?: string;
+    resetPasswordExpire?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -25,6 +27,8 @@ const UserSchema: Schema = new Schema(
         isSubscribed: { type: Boolean, default: false },
         stripeCustomerId: { type: String },
         stripeSubscriptionId: { type: String },
+        resetPasswordToken: String,
+        resetPasswordExpire: Date,
     },
     { timestamps: true }
 );
