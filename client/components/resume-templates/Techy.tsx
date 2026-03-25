@@ -53,19 +53,19 @@ export const TechyTemplate = ({ data }: { data: any }) => {
                 </div>
                 {personalInfo?.photo && (
                     <div style={{ marginLeft: '20px', flexShrink: 0 }}>
-                        <div style={{ 
-                            width: `${Math.round(110 * s)}px`, 
-                            height: `${Math.round(110 * s)}px`, 
-                            borderRadius: '50%', 
+                        <div style={{
+                            width: `${Math.round(110 * s)}px`,
+                            height: `${Math.round(110 * s)}px`,
+                            borderRadius: '50%',
                             border: '4px solid #f1f5f9',
                             overflow: 'hidden',
                             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                             background: '#f8fafc'
                         }}>
-                            <img 
-                                src={personalInfo.photo} 
-                                alt={personalInfo.fullName} 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            <img
+                                src={personalInfo.photo}
+                                alt={personalInfo.fullName}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
                         </div>
                     </div>
@@ -127,7 +127,7 @@ export const TechyTemplate = ({ data }: { data: any }) => {
                                                     <span style={{ fontWeight: 700, fontSize: `${Math.round(13 * s)}px`, color: '#0f172a' }}>{exp.position}</span>
                                                     <span style={{ fontSize: `${Math.round(9 * s)}px`, fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{exp.startDate} — {exp.endDate}</span>
                                                 </div>
-                                                <div style={{ fontWeight: 700, color: '#475569', fontSize: `${Math.round(10 * s)}px`, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '1px', marginBottom: '4px' }}>{exp.company} {exp.location ? `| ${exp.location}` : ''}</div>
+                                                <div style={{ fontWeight: 700, color: '#475569', fontSize: `${Math.round(10 * s)}px`, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '1px', marginBottom: '4px' }}>{exp.company} </div>
                                                 <p style={{ fontSize: `${Math.round(10 * s)}px`, lineHeight: 1.5, color: '#475569', fontWeight: 500, whiteSpace: 'pre-wrap' }}>{exp.description}</p>
                                             </div>
                                         ))}

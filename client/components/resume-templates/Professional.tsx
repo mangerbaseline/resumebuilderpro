@@ -114,7 +114,7 @@ export const ProfessionalTemplate = ({ data }: { data: any }) => {
                                                     <h3 style={{ fontWeight: 800, fontSize: `${Math.round(14 * s)}px`, color: '#0f172a', lineHeight: 1.2 }}>{exp.position}</h3>
                                                     <span style={{ fontSize: `${Math.round(10 * s)}px`, fontWeight: 800, color: '#0a0a0aff', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0, marginLeft: '12px', background: '#eff6ff', padding: '2px 8px', borderRadius: '4px' }}>{exp.startDate} — {exp.endDate}</span>
                                                 </div>
-                                                <div style={{ fontWeight: 700, color: '#64748b', fontSize: `${Math.round(10 * s)}px`, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>{exp.company} {exp.location ? `• ${exp.location}` : ''}</div>
+                                                <div style={{ fontWeight: 700, color: '#64748b', fontSize: `${Math.round(10 * s)}px`, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>{exp.company} </div>
                                                 <p style={{ fontSize: `${Math.round(10.5 * s)}px`, color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.6, textAlign: 'justify' }}>{exp.description}</p>
                                             </div>
                                         ))}

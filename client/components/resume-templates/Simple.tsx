@@ -35,9 +35,9 @@ export const SimpleTemplate = ({ data }: { data: any }) => {
     const scale = getScale(data.settings?.fontSize);
 
     return (
-        <div 
-            className="w-full bg-white text-black min-h-full" 
-            style={{ 
+        <div
+            className="w-full bg-white text-black min-h-full"
+            style={{
                 fontFamily: getFontFamily(data.settings?.fontFamily),
                 fontSize: getBaseFontSize(data.settings?.fontSize),
                 padding: '0.6in 0.6in',
@@ -61,20 +61,20 @@ export const SimpleTemplate = ({ data }: { data: any }) => {
                 )}
             </header>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {(data.sectionsOrder || ['summary', 'experience', 'education', 'projects', 'skills']).map((section: string) => {
                     switch (section) {
                         case 'summary':
                             return personalInfo?.summary && (
                                 <section key="summary">
-                                    <h2 style={{ fontSize: `${Math.round(13 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1.5px solid #000', marginBottom: '4px', paddingBottom: '1px' }}>Summary</h2>
+                                    <h2 style={{ fontSize: `${Math.round(15 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1.5px solid #000', marginBottom: '4px', paddingBottom: '1px' }}>Summary</h2>
                                     <p style={{ textAlign: 'justify', lineHeight: 1.5, marginTop: '2px' }}>{personalInfo.summary}</p>
                                 </section>
                             );
                         case 'education':
                             return education?.length > 0 && (
                                 <section key="education">
-                                    <h2 style={{ fontSize: `${Math.round(13 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1px solid #000', marginBottom: '3px', paddingBottom: '1px' }}>Education</h2>
+                                    <h2 style={{ fontSize: `${Math.round(15 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1px solid #000', marginBottom: '3px', paddingBottom: '1px' }}>Education</h2>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         {education.map((edu: any, i: number) => (
                                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -91,7 +91,7 @@ export const SimpleTemplate = ({ data }: { data: any }) => {
                         case 'skills':
                             return skills?.length > 0 && (
                                 <section key="skills">
-                                    <h2 style={{ fontSize: `${Math.round(13 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1px solid #000', marginBottom: '3px', paddingBottom: '1px' }}>Technical Skills</h2>
+                                    <h2 style={{ fontSize: `${Math.round(15 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1px solid #000', marginBottom: '3px', paddingBottom: '1px' }}>Technical Skills</h2>
                                     <p style={{ lineHeight: 1.4 }}>
                                         <span style={{ fontWeight: 'bold' }}>Skills & Technologies: </span>
                                         {skills.join(', ')}
@@ -101,17 +101,17 @@ export const SimpleTemplate = ({ data }: { data: any }) => {
                         case 'experience':
                             return experience?.length > 0 && (
                                 <section key="experience">
-                                    <h2 style={{ fontSize: `${Math.round(13 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1px solid #000', marginBottom: '3px', paddingBottom: '1px' }}>Work Experience</h2>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <h2 style={{ fontSize: `${Math.round(15 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1px solid #000', marginBottom: '3px', paddingBottom: '1px' }}>Work Experience</h2>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         {experience.map((exp: any, i: number) => (
                                             <div key={i} style={{ pageBreakInside: 'avoid' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                                                     <span>{exp.company}</span>
-                                                    <span style={{ fontSize: `${Math.round(10 * scale)}px`, textTransform: 'uppercase' }}>{exp.startDate} – {exp.endDate}</span>
+                                                    <span style={{ fontSize: `${Math.round(13 * scale)}px`, textTransform: 'uppercase' }}>{exp.startDate} – {exp.endDate}</span>
                                                 </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontStyle: 'italic', fontSize: `${Math.round(11 * scale)}px` }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: `${Math.round(13 * scale)}px` }}>
                                                     <span>{exp.position}</span>
-                                                    <span>{exp.location}</span>
+
                                                 </div>
                                                 <p style={{ whiteSpace: 'pre-wrap', marginTop: '2px', textAlign: 'justify', lineHeight: 1.4 }}>
                                                     {exp.description}
@@ -124,19 +124,19 @@ export const SimpleTemplate = ({ data }: { data: any }) => {
                         case 'projects':
                             return projects?.length > 0 && (
                                 <section key="projects">
-                                    <h2 style={{ fontSize: `${Math.round(13 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1px solid #000', marginBottom: '3px', paddingBottom: '1px' }}>Projects</h2>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <h2 style={{ fontSize: `${Math.round(15 * scale)}px`, fontWeight: 'bold', textTransform: 'uppercase', borderBottom: '1px solid #000', marginBottom: '3px', paddingBottom: '1px' }}>Projects</h2>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         {projects.map((proj: any, i: number) => (
                                             <div key={i} style={{ pageBreakInside: 'avoid' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                                                     <span>{proj.title}</span>
-                                                    <span style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: `${Math.round(10 * scale)}px` }}>
+                                                    <span style={{ fontWeight: 'normal',  fontSize: `${Math.round(14 * scale)}px` }}>
                                                         {proj.githubLink && <a href={proj.githubLink} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline' }}>Source</a>}
                                                         {proj.githubLink && proj.deployedLink && ' | '}
                                                         {proj.deployedLink && <a href={proj.deployedLink} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline' }}>Live</a>}
                                                     </span>
                                                 </div>
-                                                <p style={{ fontStyle: 'italic', color: '#000', lineHeight: 1.4 }}>{proj.description}</p>
+                                                <p style={{  color: '#000', lineHeight: 1.4 }}>{proj.description}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -146,9 +146,9 @@ export const SimpleTemplate = ({ data }: { data: any }) => {
                             const customSec = (data.customSections || []).find((s: any) => s.id === section);
                             if (customSec) {
                                 return (
-                                    <section key={customSec.id} style={{ marginBottom: '8px' }}>
+                                    <section key={customSec.id} style={{ marginBottom: '4px' }}>
                                         <div className="section-title border-b-[1.5px] border-black pb-0.25 mb-1 mt-2 uppercase font-bold" style={{ fontSize: `${Math.round(13 * scale)}px` }}>{customSec.title}</div>
-                                        <p style={{ margin: '2px 0 0 0', textAlign: 'justify', whiteSpace: 'pre-wrap', lineHeight: 1.4, fontSize: `${Math.round(12 * scale)}px` }}>{customSec.content}</p>
+                                        <p style={{ margin: '2px 0 0 0', textAlign: 'justify', whiteSpace: 'pre-wrap', lineHeight: 1.4, fontSize: `${Math.round(13 * scale)}px` }}>{customSec.content}</p>
                                     </section>
                                 );
                             }

@@ -60,7 +60,7 @@ export const CreativeTemplate = ({ data }: { data: any }) => {
 
             {/* Body */}
             <div style={{ padding: '20px 28px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {(data.sectionsOrder || ['summary', 'experience', 'education', 'projects', 'skills']).map((section: string) => {
                         switch (section) {
                             case 'summary':
@@ -74,7 +74,7 @@ export const CreativeTemplate = ({ data }: { data: any }) => {
                                 return education?.length > 0 && (
                                     <section key="education" style={{ marginBottom: '14px' }}>
                                         <h2 style={{ fontSize: `${Math.round(18 * s)}px`, fontWeight: 900, textTransform: 'uppercase', borderBottom: '3px solid #facc15', display: 'inline-block', paddingBottom: '2px', fontStyle: 'italic', letterSpacing: '-0.02em', marginBottom: '6px' }}>Education.</h2>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                             {(education || []).map((edu: any, i: number) => (
                                                 <div key={i}>
                                                     <div style={{ fontWeight: 900, fontSize: `${Math.round(12 * s)}px`, textTransform: 'uppercase', color: '#0f172a', lineHeight: 1 }}>{edu.school}</div>
@@ -100,14 +100,14 @@ export const CreativeTemplate = ({ data }: { data: any }) => {
                                 return experience?.length > 0 && (
                                     <section key="experience" style={{ marginBottom: '14px' }}>
                                         <h2 style={{ fontSize: `${Math.round(18 * s)}px`, fontWeight: 900, textTransform: 'uppercase', borderBottom: '3px solid #facc15', display: 'inline-block', paddingBottom: '2px', fontStyle: 'italic', letterSpacing: '-0.02em', marginBottom: '6px' }}>Experience.</h2>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                             {(experience || []).map((exp: any, i: number) => (
                                                 <div key={i} style={{ borderLeft: '2px solid #f1f5f9', paddingLeft: '10px', pageBreakInside: 'avoid' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
                                                         <span style={{ fontWeight: 900, fontSize: `${Math.round(12 * s)}px`, textTransform: 'uppercase', color: '#0f172a' }}>{exp.position}</span>
                                                         <span style={{ fontSize: `${Math.round(10 * s)}px`, fontWeight: 900, color: '#cbd5e1', textTransform: 'uppercase', background: '#f8fafc', padding: '1px 6px', borderRadius: '9999px', flexShrink: 0 }}>{exp.startDate} — {exp.endDate}</span>
                                                     </div>
-                                                    <div style={{ color: '#94a3b8', fontWeight: 900, fontSize: `${Math.round(10 * s)}px`, textTransform: 'uppercase', marginBottom: '3px' }}>{exp.company} | {exp.location}</div>
+                                                    <div style={{ color: '#94a3b8', fontWeight: 900, fontSize: `${Math.round(10 * s)}px`, textTransform: 'uppercase', marginBottom: '3px' }}>{exp.company} </div>
                                                     <p style={{ fontSize: `${Math.round(11 * s)}px`, lineHeight: 1.5, color: '#475569', fontWeight: 500, whiteSpace: 'pre-wrap' }}>{exp.description}</p>
                                                 </div>
                                             ))}
@@ -118,12 +118,12 @@ export const CreativeTemplate = ({ data }: { data: any }) => {
                                 return projects?.length > 0 && (
                                     <section key="projects" style={{ marginBottom: '14px' }}>
                                         <h2 style={{ fontSize: `${Math.round(18 * s)}px`, fontWeight: 900, textTransform: 'uppercase', borderBottom: '3px solid #facc15', display: 'inline-block', paddingBottom: '2px', fontStyle: 'italic', letterSpacing: '-0.02em', marginBottom: '6px' }}>Projects.</h2>
-                                        <div style={{ display: 'grid', gap: '8px' }}>
+                                        <div style={{ display: 'grid', gap: '4px' }}>
                                             {projects.map((proj: any, i: number) => (
                                                 <div key={i} style={{ border: '2px solid #f8fafc', padding: '8px', borderRadius: '6px', pageBreakInside: 'avoid' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
                                                         <span style={{ fontWeight: 900, fontSize: `${Math.round(12 * s)}px`, textTransform: 'uppercase', color: '#0f172a' }}>{proj.title}</span>
-                                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                                        <div style={{ display: 'flex', gap: '4px' }}>
                                                             {proj.githubLink && <a href={proj.githubLink} target="_blank" rel="noopener noreferrer" style={{ color: '#cbd5e1' }}><ExternalLink size={10} /></a>}
                                                             {proj.deployedLink && <a href={proj.deployedLink} target="_blank" rel="noopener noreferrer" style={{ color: '#cbd5e1' }}><ExternalLink size={10} /></a>}
                                                         </div>

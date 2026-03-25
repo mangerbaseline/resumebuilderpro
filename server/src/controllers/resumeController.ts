@@ -374,6 +374,66 @@ export const getResumeBySlug = async (req: Request, res: Response) => {
 //         res.status(500).json({ message: 'Failed to generate PDF', error: error.message });
 //     }
 // };
+// export const generatePDF = async (req: Request, res: Response) => {
+//     try {
+//         const resume = await Resume.findById(req.params.id);
+//         if (!resume) return res.status(404).json({ message: 'Resume not found' });
+
+//         // @ts-ignore
+//         if (resume.user.toString() !== req.user._id.toString()) {
+//             return res.status(401).json({ message: 'Not authorized' });
+//         }
+
+//         const templateId = resume.selectedTemplate || 'modern';
+//         const templateFn = TEMPLATES[templateId] || TEMPLATES['modern'];
+//         const htmlContent = templateFn(resume.data);
+
+//         const browser = await puppeteer.connect({
+//             browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_TOKEN}`,
+//         });
+
+//         const page = await browser.newPage();
+
+//         await page.setViewport({
+//             width: 794,
+//             height: 1123,
+//             deviceScaleFactor: 1,
+//         });
+
+//         await page.setContent(htmlContent, {
+//             waitUntil: ['networkidle0', 'load', 'domcontentloaded'],
+//             timeout: 60000
+//         });
+
+//         await page.evaluateHandle('document.fonts.ready');
+//         await new Promise(resolve => setTimeout(resolve, 500));
+
+//         const pdfBuffer = await page.pdf({
+//             format: 'A4',
+//             printBackground: true,
+//             margin: {
+//                 top: '0px',
+//                 bottom: '0px',
+//                 left: '0px',
+//                 right: '0px'
+//             },
+//             scale: 1,
+//             preferCSSPageSize: true,
+//             displayHeaderFooter: false
+//         });
+
+//         await browser.close();
+
+//         res.setHeader('Content-Type', 'application/pdf');
+//         res.setHeader('Content-Disposition', `attachment; filename="${resume.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf"`);
+//         res.status(200).send(pdfBuffer);
+
+//     } catch (error: any) {
+//         console.error('PDF Generation Error:', error);
+//         res.status(500).json({ message: 'Failed to generate PDF', error: error.message });
+//     }
+// };
+
 export const generatePDF = async (req: Request, res: Response) => {
     try {
         const resume = await Resume.findById(req.params.id);
@@ -392,41 +452,47 @@ export const generatePDF = async (req: Request, res: Response) => {
             browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_TOKEN}`,
         });
 
-        const page = await browser.newPage();
+        try {
+            const page = await browser.newPage();
 
-        await page.setViewport({
-            width: 794,
-            height: 1123,
-            deviceScaleFactor: 1,
-        });
+            await page.setViewport({
+                width: 794,
+                height: 1123,
+                deviceScaleFactor: 1,
+            });
 
-        await page.setContent(htmlContent, {
-            waitUntil: ['networkidle0', 'load', 'domcontentloaded'],
-            timeout: 60000
-        });
+            // ✅ Fix 2: navigate to blank page first
+            await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
 
-        await page.evaluateHandle('document.fonts.ready');
-        await new Promise(resolve => setTimeout(resolve, 500));
+            // ✅ Fix 1: single waitUntil string
+            await page.setContent(htmlContent, {
+                waitUntil: 'networkidle0',
+                timeout: 60000,
+            });
 
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: {
-                top: '0px',
-                bottom: '0px',
-                left: '0px',
-                right: '0px'
-            },
-            scale: 1,
-            preferCSSPageSize: true,
-            displayHeaderFooter: false
-        });
+            await page.evaluateHandle('document.fonts.ready');
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-        await browser.close();
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: { top: '0px', bottom: '0px', left: '0px', right: '0px' },
+                scale: 1,
+                preferCSSPageSize: true,
+                displayHeaderFooter: false,
+            });
 
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${resume.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf"`);
-        res.status(200).send(pdfBuffer);
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename="${resume.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf"`
+            );
+            res.status(200).send(pdfBuffer);
+
+        } finally {
+            // ✅ Fix 3: always close the browser
+            await browser.close();
+        }
 
     } catch (error: any) {
         console.error('PDF Generation Error:', error);
