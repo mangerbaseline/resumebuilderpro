@@ -7,7 +7,7 @@ client/error.log
 
 # Backend
 server/node_modules
-server/dist
+# server/dist
 server/.env
 server/build_error.log
 server/uploads
