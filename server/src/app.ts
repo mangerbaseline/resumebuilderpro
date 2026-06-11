@@ -93,6 +93,8 @@ app.use("/api", interviewRoutes);
 startCreditResetJob();
 connectDB();
 
-app.listen(PORT, () => {
-  console.log(`Server successfully running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server successfully running on port ${PORT}`);
+// });
+
+export default app; // Exporting the app for testing purposes
