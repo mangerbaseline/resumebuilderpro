@@ -41,7 +41,7 @@ export const uploadResume = async (req: Request, res: Response) => {
         }
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-        const model = genAI.getGenerativeModel({ 
+        const model = genAI.getGenerativeModel({
             model: 'gemini-3-flash-preview',
             generationConfig: { temperature: 0.1 }
         });
@@ -51,6 +51,13 @@ export const uploadResume = async (req: Request, res: Response) => {
         Your task is to extract the details and return them in a specific JSON structure.
         
         CRITICAL: ONLY return the JSON, no extra text, no markdown formatting.
+        IMPORTANT:
+- Preserve ALL bullet points separately.
+- Never summarize achievements.
+- Never merge bullets into paragraphs.
+- Preserve every section found in the resume.
+- If a section is unknown, include it in customSections.
+- Preserve publication metadata including DOI, venue, authors, awards, and years.
         
         The JSON structure MUST be:
         {
@@ -101,7 +108,7 @@ export const uploadResume = async (req: Request, res: Response) => {
 
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
-        
+
         let jsonStr = responseText.trim();
         if (jsonStr.startsWith('```json')) {
             jsonStr = jsonStr.substring(7, jsonStr.lastIndexOf('```')).trim();
@@ -114,7 +121,7 @@ export const uploadResume = async (req: Request, res: Response) => {
             parsedData = JSON.parse(jsonStr);
             // Ensure skills is an array of strings
             if (parsedData.skills && Array.isArray(parsedData.skills)) {
-                parsedData.skills = parsedData.skills.map((s: any) => 
+                parsedData.skills = parsedData.skills.map((s: any) =>
                     typeof s === 'object' ? (s.items ? s.items.join(', ') : JSON.stringify(s)) : String(s)
                 );
             }

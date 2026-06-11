@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useEffect, useState, useRef, cloneElement } from "react";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,9 @@ import {
     Crown,
     ArrowRight,
     X,
-    Upload
+    Upload,
+    Wand2,
+    LogOut,
 } from "lucide-react";
 import { FiX, FiEdit2, FiTrash2, FiStar } from "react-icons/fi";
 import { FaRegCommentDots } from "react-icons/fa";
@@ -83,7 +85,7 @@ const Dashboard = () => {
         isOpen: false,
         title: "",
         message: "",
-        onConfirm: () => {},
+        onConfirm: () => { },
     });
     const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
 
@@ -139,6 +141,12 @@ const Dashboard = () => {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
+ const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.success("Logged out successfully");
+        router.push("/login");
+    };
 
     const handleDeleteFeedback = async (id: string) => {
         setIsFeedbackListOpen(false);
@@ -333,7 +341,7 @@ const Dashboard = () => {
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'text/plain'
         ];
-        
+
         if (!allowedTypes.includes(file.type)) {
             toast.error("Invalid file format. Please upload PDF, DOCX, or TXT.");
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -533,71 +541,7 @@ const Dashboard = () => {
                         Resumen
                     </Link>
 
-                    {/* <nav className="flex-1 space-y-2">
 
-                       
-                        <button
-                            onClick={() => {
-                                dashboardRef.current?.scrollIntoView({ behavior: "smooth" });
-                                setActiveSection("dashboard");
-                            }}
-                            className={`flex w-full items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium transition
-        ${activeSection === "dashboard"
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                                }`}
-                        >
-                            <Layout size={18} /> Dashboard
-                        </button>
-
-                        <button
-                            onClick={() => {
-                                jobBoardRef.current?.scrollIntoView({ behavior: "smooth" });
-                                setActiveSection("job");
-                            }}
-                            className={`flex w-full items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium transition
-        ${activeSection === "job"
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                                }`}
-                        >
-                            <Kanban size={18} /> Job Board
-                        </button>
-
-                        
-                        <button
-                            onClick={() => {
-                                setIsCreateOpen(true);
-                            }}
-                            className="flex w-full items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                        >
-                            <Plus size={18} /> Create Resume
-                        </button>
-
-                  
-                        <button
-                            onClick={() => setIsFeedbackOpen(true)}
-                            className={`flex w-full items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium transition
-        ${activeSection === "feedback"
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                                }`}
-                        >
-                            <FaRegCommentDots size={18} /> Leave Feedback
-                        </button>
-
-                       
-                        <button
-                            onClick={() => {
-                                setIsFeedbackListOpen(true);
-                                fetchAllFeedback();
-                            }}
-                            className="flex w-full items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                        >
-                            <MdOutlineRateReview size={18} /> Manage Feedback
-                        </button>
-
-                    </nav> */}
                     <nav className="flex-1 space-y-2">
 
                         {/* Dashboard */}
@@ -637,7 +581,12 @@ const Dashboard = () => {
                         >
                             <Sparkles size={18} className="text-primary" /> AI Cover Letter
                         </Link>
-
+  <Link
+                            href="/dashboard/interview"
+                            className="flex w-full items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                        >
+                            <Wand2 size={18} className="text-primary" /> AI Interview Prep
+                        </Link>
                         {/* Create Resume */}
                         <button
                             onClick={() => {
@@ -648,6 +597,14 @@ const Dashboard = () => {
                             <Plus size={18} /> Create Resume
                         </button>
 
+
+                        <button
+                            onClick={() => router.push("/dashboard/jobsearch")}
+                            className="flex w-full items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                        >
+                            <Search size={18} />
+                            Job Search
+                        </button>
                         {/* Leave Feedback */}
                         <button
                             onClick={() => setIsFeedbackOpen(true)}
@@ -680,20 +637,8 @@ const Dashboard = () => {
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-sm font-medium">{user?.name}</span>
-                                <span className="text-xs text-muted-foreground">{user?.email}</span>
                             </div>
-                        </div>
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-start text-muted-foreground border-2 border-purple-700 hover:text-black hover:bg-purple-700"
-                            onClick={() => {
-                                localStorage.removeItem("token");
-                                localStorage.removeItem("user");
-                                router.push("/login");
-                            }}
-                        >
-                            Logout
-                        </Button>
+                        </div>                                
                     </div>
                 </div>
             </aside>
@@ -719,35 +664,58 @@ const Dashboard = () => {
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-lg shadow-primary/20">
                             {user?.name?.[0] || 'U'}
                         </div>
+                        <Button
+  onClick={handleLogout}
+  className="rounded-xl font-bold h-10 px-6 gap-2 bg-primary hover:bg-red-600 text-white shadow-lg"
+>
+  <LogOut size={16} /> Logout
+</Button>
+                    
                     </div>
                 </header>
 
                 <main className="mx-auto max-w-7xl relative z-10 px-8 py-12">
                     {/* Hero / Welcome Section */}
+                     <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".pdf,.doc,.docx,.txt"
+        onChange={handleFileUpload}
+    />
+    
                     <div className="mb-16">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="flex flex-col md:flex-row md:items-end justify-between gap-8"
+                            className="flex flex-col gap-6"
                         >
-                            <div ref={dashboardRef}>
-
-                                <h1 className="text-5xl font-black tracking-tighter mb-4 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-
-                                    Welcome, {user?.name.split(' ')[0]}
+                            {/* TEXT SECTION */}
+                            <div ref={dashboardRef} className="max-w-3xl">
+                                <h1 className="text-5xl font-black tracking-tighter leading-tight mb-2 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                                    Welcome, {user?.name.split(" ")[0]}
 
                                     {user?.isSubscribed && (
-                                        <span className="ml-4 inline-flex items-center gap-2 px-3 py-1 bg-primary text-[10px] font-black uppercase tracking-[0.2em] rounded-full text-white align-middle shadow-lg shadow-primary/30">
-                                            <Crown size={12} className="fill-white" /> Pro
+                                        <span className="ml-3 inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-[10px] font-black uppercase tracking-[0.2em] rounded-full text-white align-middle shadow-lg shadow-primary/30">
+                                            <Crown size={12} className="fill-white" />
+                                            PRO
                                         </span>
                                     )}
                                 </h1>
 
-                                <p className="text-lg text-muted-foreground max-w-2xl">
-                                    Ready to build something great today? Your next career milestone starts with a perfectly crafted resume.
+                                <p className="text-lg text-muted-foreground leading-relaxed">
+                                    Ready to build something great today? Your next career milestone starts
+                                    with a perfectly crafted resume.
                                 </p>
                             </div>
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+
+
+
+
+                            {/* BUTTONS SECTION */}
+                            <div className="flex flex-wrap items-center gap-4">
+
+                                {/* Create */}
                                 <Button
                                     onClick={() => {
                                         if (!user?.isSubscribed && resumes.length >= 2) {
@@ -756,21 +724,17 @@ const Dashboard = () => {
                                         }
                                         setIsCreateOpen(true);
                                     }}
-                                    className="h-14 px-8 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/95 text-base font-bold shadow-xl transition-all hover:scale-[1.03] active:scale-[0.97] gap-3 group"
+                                    className="h-12 px-8 whitespace-nowrap rounded-2xl bg-primary text-primary-foreground hover:bg-primary/95 text-base font-bold shadow-xl transition-all hover:scale-[1.03]"
                                 >
-                                    <div className="h-7 w-7 rounded-full bg-white/20 flex items-center justify-center group-hover:rotate-180 transition-transform duration-500">
-                                        <Plus size={20} className="text-white" />
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-7 w-7 flex items-center justify-center rounded-full bg-white/20">
+                                            <Plus size={18} className="text-white" />
+                                        </div>
+                                        Create New Resume
                                     </div>
-                                    Create New Resume
                                 </Button>
 
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileUpload}
-                                    className="hidden"
-                                    accept=".pdf,.docx,.txt"
-                                />
+                                {/* Upload */}
                                 <Button
                                     onClick={() => {
                                         if (!user?.isSubscribed && resumes.length >= 2) {
@@ -780,26 +744,44 @@ const Dashboard = () => {
                                         fileInputRef.current?.click();
                                     }}
                                     disabled={uploadingResume}
-                                    className="h-14 px-8 rounded-2xl bg-secondary border border-border/50 text-foreground hover:bg-accent text-base font-bold shadow-xl shadow-black/5 transition-all hover:scale-[1.03] active:scale-[0.97] gap-3 group"
+                                    className="h-12 px-8 whitespace-nowrap rounded-2xl bg-secondary border border-border/50 text-foreground hover:bg-accent text-base font-bold shadow-xl shadow-black/5 transition-all hover:scale-[1.03]"
                                 >
-                                    {uploadingResume ? (
-                                        <Loader2 className="animate-spin text-primary" size={20} />
-                                    ) : (
-                                        <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center group-hover:-translate-y-1 transition-transform">
-                                            <Upload size={18} className="text-primary" />
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-7 w-7 flex items-center justify-center rounded-full bg-primary/10">
+                                            {uploadingResume ? (
+                                                <Loader2 className="animate-spin text-primary" size={18} />
+                                            ) : (
+                                                <Upload size={18} className="text-primary" />
+                                            )}
                                         </div>
-                                    )}
-                                    {uploadingResume ? "Processing..." : "Upload Resume"}
+                                        {uploadingResume ? "Processing..." : "Upload Resume"}
+                                    </div>
                                 </Button>
-                                
+
+                                {/* Cover Letter */}
                                 <Button
                                     onClick={() => router.push("/dashboard/cover-letter")}
-                                    className="h-14 px-8 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 hover:opacity-95 text-base font-bold text-white shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.03] active:scale-[0.97] gap-3 group"
+                                    className="h-12 px-8 whitespace-nowrap rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 hover:opacity-95 text-base font-bold text-white shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.03]"
                                 >
-                                    <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <Sparkles size={18} className="fill-white" />
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-7 w-7 flex items-center justify-center rounded-full bg-white/10">
+                                            <Sparkles size={18} className="fill-white" />
+                                        </div>
+                                        AI Cover Letter
                                     </div>
-                                    AI Cover Letter
+                                </Button>
+
+    {/* Ai Interview Prep */}
+                                <Button
+                                    onClick={() => router.push("/dashboard/interview")}
+                                    className="h-12 px-8 whitespace-nowrap rounded-2xl bg-secondary border border-border/50 text-foreground hover:bg-accent text-base font-bold shadow-xl shadow-black/5 transition-all hover:scale-[1.03]"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-7 w-7 flex items-center justify-center rounded-full bg-white/10">
+                                            <Wand2 size={18} className="text-primary" />
+                                        </div>
+                                        AI Interview Prep
+                                    </div>
                                 </Button>
                             </div>
                         </motion.div>
@@ -908,7 +890,7 @@ const Dashboard = () => {
                                                     </div>
                                                 </div>
                                                 <div className="absolute top-4 right-4 z-10">
-                                                    <button 
+                                                    <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setActiveResumeDropdown(activeResumeDropdown === resume._id ? null : resume._id);
@@ -917,12 +899,12 @@ const Dashboard = () => {
                                                     >
                                                         <MoreHorizontal size={20} />
                                                     </button>
-                                                    
+
                                                     <AnimatePresence>
                                                         {activeResumeDropdown === resume._id && (
                                                             <>
-                                                                <div 
-                                                                    className="fixed inset-0 z-10" 
+                                                                <div
+                                                                    className="fixed inset-0 z-10"
                                                                     onClick={() => setActiveResumeDropdown(null)}
                                                                 />
                                                                 <motion.div
@@ -931,7 +913,7 @@ const Dashboard = () => {
                                                                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                                                                     className="absolute right-0 mt-2 w-48 rounded-2xl border border-border bg-card p-2 shadow-2xl z-20 overflow-hidden"
                                                                 >
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => {
                                                                             router.push(`/editor/${resume._id}`);
                                                                             setActiveResumeDropdown(null);
@@ -940,7 +922,7 @@ const Dashboard = () => {
                                                                     >
                                                                         <Edit size={16} className="text-primary" /> Edit Resume
                                                                     </button>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={(e) => {
                                                                             duplicateResume(resume._id, e);
                                                                             setActiveResumeDropdown(null);
@@ -950,7 +932,7 @@ const Dashboard = () => {
                                                                         <Copy size={16} className="text-primary" /> Duplicate
                                                                     </button>
                                                                     <div className="my-1 border-t border-border/50" />
-                                                                    <button 
+                                                                    <button
                                                                         onClick={(e) => {
                                                                             deleteResume(resume._id, e);
                                                                             setActiveResumeDropdown(null);
@@ -965,7 +947,7 @@ const Dashboard = () => {
                                                     </AnimatePresence>
                                                 </div>
 
-                                                <div 
+                                                <div
                                                     className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-95 group-hover:scale-100 backdrop-blur-[2px] cursor-pointer"
                                                     onClick={() => router.push(`/editor/${resume._id}`)}
                                                 >

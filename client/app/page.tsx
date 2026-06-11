@@ -439,7 +439,7 @@ function TestimonialCard({
                         </span>
                     ))}
                 </div>
-            )}
+            )};
 
             <p className="text-lg text-foreground italic mb-6">"{quote}"</p>
 

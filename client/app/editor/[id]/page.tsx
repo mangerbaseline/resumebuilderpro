@@ -41,13 +41,14 @@ export default function EditorPage() {
     const [atsLoading, setAtsLoading] = useState(false);
     const [atsResult, setAtsResult] = useState<any>(null);
     const [enhancing, setEnhancing] = useState(false);
+    const [isImproving, setIsImproving] = useState<Record<string, boolean>>({});
     const [enhancedExperiences, setEnhancedExperiences] = useState<string[]>([]);
     const [showEnhancementPreview, setShowEnhancementPreview] = useState(false);
     const [showSkillWarning, setShowSkillWarning] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [resumesCount, setResumesCount] = useState<number>(0);
     const previewParentRef = useRef<HTMLDivElement>(null);
-
+const [credits, setCredits] = useState<number | null>(null);
     // Dynamic A4 scaling logic
     useEffect(() => {
         if (!previewParentRef.current) return;
@@ -75,17 +76,33 @@ export default function EditorPage() {
         }
     }, [params.id]);
 
-    const fetchUserAndCount = async () => {
-        try {
-            const userResponse = await api.get("/auth/me");
-            setUser(userResponse.data);
+    // const fetchUserAndCount = async () => {
+    //     try {
+    //         const userResponse = await api.get("/auth/me");
+    //         setUser(userResponse.data);
 
-            const resumesResponse = await api.get("/resumes");
-            setResumesCount(resumesResponse.data.length);
-        } catch (error) {
-            console.error("Failed to fetch user context");
-        }
-    };
+    //         const resumesResponse = await api.get("/resumes");
+    //         setResumesCount(resumesResponse.data.length);
+    //     } catch (error) {
+    //         console.error("Failed to fetch user context");
+    //     }
+    // };
+
+const fetchUserAndCount = async () => {
+    try {
+        const userResponse = await api.get("/auth/me");
+        setUser(userResponse.data);
+
+        // ✅ ADD THIS
+        setCredits(userResponse.data.credits);
+
+        const resumesResponse = await api.get("/resumes");
+        setResumesCount(resumesResponse.data.length);
+    } catch (error) {
+        console.error("Failed to fetch user context");
+    }
+};
+
 
     const fetchResume = async () => {
         try {
@@ -317,6 +334,10 @@ export default function EditorPage() {
             toast.error("Please enter a job description.");
             return;
         }
+        if ((credits ?? 0) <= 0) {
+    toast.error("No credits left.");
+    return;
+}
 
         setAtsLoading(true);
         setAtsResult(null);
@@ -341,7 +362,113 @@ export default function EditorPage() {
         }
     };
 
+  const handleImproveText = async (
+    text: string,
+    tone: string,
+    fieldId: string,
+    onUpdate: (text: string) => void
+) => {
+    // ✅ 1. Empty check
+    if (!text.trim()) {
+        toast.error("Please enter some text first.");
+        return;
+    }
+
+    // ✅ 2. Credits check (separate)
+    if ((credits ?? 0) <= 0) {
+        toast.error("No credits left. Upgrade to continue.");
+        return;
+    }
+
+    setIsImproving(prev => ({ ...prev, [fieldId]: true }));
+
+    try {
+        const response = await api.post("/ai/improve-text", { text, tone });
+        onUpdate(response.data.improvedText);
+
+        toast.success("Text improved successfully!");
+
+        // ✅ refresh credits
+        fetchUserAndCount();
+
+    } catch (error: any) {
+        if (error.response?.status === 403) {
+            toast.error(error.response.data.message || "Upgrade to Pro.");
+        } else {
+            toast.error("Failed to improve text.");
+        }
+    } finally {
+        setIsImproving(prev => ({ ...prev, [fieldId]: false }));
+    }
+};
+
+    // const renderAIButtons = (fieldId: string, text: string, onUpdate: (text: string) => void) => (
+    //     <div className="flex gap-2 mt-2 justify-end">
+    //         <Button size="sm" variant="ghost" onClick={() => handleImproveText(text, 'grammar', fieldId, onUpdate)} disabled={isImproving[fieldId]} className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider border border-border bg-secondary/30 hover:bg-secondary/80">
+    //             {isImproving[fieldId] ? <Loader2 size={12} className="animate-spin mr-1" /> : <Zap size={12} className="mr-1 text-primary" />} Grammar
+    //         </Button>
+    //         <Button size="sm" variant="ghost" onClick={() => handleImproveText(text, 'professional', fieldId, onUpdate)} disabled={isImproving[fieldId]} className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider border border-border bg-secondary/30 hover:bg-secondary/80">
+    //             {isImproving[fieldId] ? <Loader2 size={12} className="animate-spin mr-1" /> : <Briefcase size={12} className="mr-1 text-blue-500" />} Professional
+    //         </Button>
+    //         <Button size="sm" variant="ghost" onClick={() => handleImproveText(text, 'concise', fieldId, onUpdate)} disabled={isImproving[fieldId]} className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider border border-border bg-secondary/30 hover:bg-secondary/80">
+    //             {isImproving[fieldId] ? <Loader2 size={12} className="animate-spin mr-1" /> : <Target size={12} className="mr-1 text-amber-500" />} Concise
+    //         </Button>
+    //     </div>
+    // );
+
+const renderAIButtons = (
+    fieldId: string,
+    text: string,
+    onUpdate: (text: string) => void
+) => (
+    <div className="flex gap-2 mt-2 justify-end">
+        <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleImproveText(text, 'grammar', fieldId, onUpdate)}
+            disabled={isImproving[fieldId] || (credits ?? 0) <= 0}
+            className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider border border-border bg-secondary/30 hover:bg-secondary/80"
+        >
+            {isImproving[fieldId]
+                ? <Loader2 size={12} className="animate-spin mr-1" />
+                : <Zap size={12} className="mr-1 text-primary" />}
+            Grammar
+        </Button>
+
+        <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleImproveText(text, 'professional', fieldId, onUpdate)}
+            disabled={isImproving[fieldId] || (credits ?? 0) <= 0}
+            className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider border border-border bg-secondary/30 hover:bg-secondary/80"
+        >
+            {isImproving[fieldId]
+                ? <Loader2 size={12} className="animate-spin mr-1" />
+                : <Briefcase size={12} className="mr-1 text-blue-500" />}
+            Professional
+        </Button>
+
+        <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleImproveText(text, 'concise', fieldId, onUpdate)}
+            disabled={isImproving[fieldId] || (credits ?? 0) <= 0}
+            className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider border border-border bg-secondary/30 hover:bg-secondary/80"
+        >
+            {isImproving[fieldId]
+                ? <Loader2 size={12} className="animate-spin mr-1" />
+                : <Target size={12} className="mr-1 text-amber-500" />}
+            Concise
+        </Button>
+    </div>
+);
+
+
     const enhanceExperience = async () => {
+        if ((credits ?? 0) <= 0) {
+    toast.error("No credits left.");
+    return;
+}
         if (!jobDescription.trim() || !resume) return;
 
         if (!user?.isSubscribed && resumesCount >= 2) {
@@ -453,6 +580,18 @@ export default function EditorPage() {
                     />
                 </div>
                 <div className="flex items-center gap-3">
+                    <span className="text-md font-semibold text-muted-foreground">
+    Credits:{" "}
+    <span
+      className={`font-bold ${
+        credits !== null && credits <= 5
+          ? "text-red-500"
+          : "text-primary"
+      }`}
+    >
+      {credits ?? 0}
+    </span>
+  </span>
                     <button
                         onClick={() => setActiveSection('ats')}
                         className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all ${activeSection === 'ats'
@@ -470,6 +609,7 @@ export default function EditorPage() {
                         </span>
                     </div>
                     <ThemeToggle />
+                      
                     <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="bg-primary text-primary-foreground hover:bg-primary/90 border-none px-6 rounded-full font-bold">
                         {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download size={16} className="mr-2" />}
                         {exporting ? "Generating..." : "Download PDF"}
@@ -654,6 +794,7 @@ export default function EditorPage() {
                                     onChange={(e) => updatePersonalData('summary', e.target.value)}
                                     placeholder="Briefly describe your professional background and key achievements..."
                                 />
+                                {renderAIButtons('summary', resume.data?.personalInfo?.summary || '', (newText) => updatePersonalData('summary', newText))}
                             </div>
                         </div>
                     )}
@@ -706,6 +847,7 @@ export default function EditorPage() {
                                             onChange={(e) => updateExperience(index, 'description', e.target.value)}
                                             placeholder="Describe your role, responsibilities and key achievements..."
                                         />
+                                        {renderAIButtons(`exp_${index}`, exp.description || '', (newText) => updateExperience(index, 'description', newText))}
                                     </div>
                                 </div>
                             ))}
@@ -787,6 +929,7 @@ export default function EditorPage() {
                                                 onChange={(e) => updateProject(index, 'description', e.target.value)}
                                                 placeholder="Describe your project, technologies used, and your role..."
                                             />
+                                            {renderAIButtons(`proj_${index}`, proj.description || '', (newText) => updateProject(index, 'description', newText))}
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <Input
@@ -989,11 +1132,11 @@ export default function EditorPage() {
                                 />
                             </div>
 
-                            <Button
-                                onClick={fetchAtsScore}
-                                disabled={atsLoading || !jobDescription.trim()}
-                                className="w-full py-6 text-base font-bold bg-primary hover:bg-primary/90 text-white"
-                            >
+                           <Button
+    onClick={fetchAtsScore}
+    disabled={atsLoading || !jobDescription.trim() || (credits ?? 0) <= 0}
+    className="w-full py-6 text-base font-bold bg-primary hover:bg-primary/90 text-white"
+>
                                 {atsLoading ? (
                                     <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Analyzing Resume...</>
                                 ) : (

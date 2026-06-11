@@ -59,7 +59,8 @@ export default function AdminPage() {
     const [activeTab, setActiveTab] = useState<"users" | "feedback" | "revenue">("users");
     const [feedbackFilter, setFeedbackFilter] = useState("all");
     const [chartView, setChartView] = useState<"daily" | "monthly">("daily");
-
+  // ✅ NEW: delete modal state
+    const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
     useEffect(() => {
         const userStr = localStorage.getItem("user");
         if (!userStr) {
@@ -88,6 +89,21 @@ export default function AdminPage() {
             setLoading(false);
         }
     };
+
+ const handleDeleteUser = async () => {
+        if (!deleteUserId) return;
+
+        try {
+            await api.delete(`/admin/user/${deleteUserId}`);
+            toast.success("User deleted successfully");
+            fetchAdminData();
+        } catch (err) {
+            toast.error("Failed to delete user");
+        } finally {
+            setDeleteUserId(null);
+        }
+    };
+
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -191,16 +207,6 @@ export default function AdminPage() {
                             <p className="text-4xl font-black text-foreground">{adminData?.totalResumes}</p>
                         </div>
                     </motion.div>
-
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="p-8 rounded-[2rem] border border-border bg-card shadow-xl flex items-center gap-6">
-                        <div className="h-16 w-16 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                            <Activity size={28} className="text-amber-500" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-1">Total Activity (Jobs/Covers)</p>
-                            <p className="text-4xl font-black text-foreground">{adminData?.totalJobs}</p>
-                        </div>
-                    </motion.div>
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="p-8 rounded-[2rem] border border-border bg-card shadow-xl flex items-center gap-6">
                         <div className="h-16 w-16 rounded-2xl bg-purple-500/10 flex items-center justify-center shrink-0">
                             <MessageSquare size={28} className="text-purple-500" />
@@ -277,9 +283,9 @@ export default function AdminPage() {
                                         <tr className="border-b border-border bg-muted/50 text-muted-foreground">
                                             <th className="px-8 py-5 text-xs font-black uppercase tracking-widest">User</th>
                                             <th className="px-8 py-5 text-xs font-black uppercase tracking-widest">Resumes</th>
-                                            <th className="px-8 py-5 text-xs font-black uppercase tracking-widest">Activity</th>
                                             <th className="px-8 py-5 text-xs font-black uppercase tracking-widest">Status</th>
                                             <th className="px-8 py-5 text-xs font-black uppercase tracking-widest">Joined Date</th>
+                                        <th className="px-8 py-5 text-xs font-black uppercase tracking-widest">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -327,12 +333,7 @@ export default function AdminPage() {
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="px-8 py-5">
-                                                            <div className="flex items-center gap-2">
-                                                                <Briefcase size={16} className="text-muted-foreground" />
-                                                                <span className="font-bold text-lg">{user.jobsCount}</span>
-                                                            </div>
-                                                        </td>
+                                                      
                                                         <td className="px-8 py-5">
                                                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${user.role === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' : user.isSubscribed ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-secondary text-muted-foreground border border-border'}`}>
                                                                 {user.role === 'admin' ? 'Admin' : user.isSubscribed ? 'Pro' : 'Free'}
@@ -345,6 +346,16 @@ export default function AdminPage() {
                                                                 day: 'numeric'
                                                             })}
                                                         </td>
+                                                        {/* ✅ NEW COLUMN */}
+<td className="px-8 py-5">
+    <Button
+        variant="destructive"
+        size="sm"
+        onClick={() => setDeleteUserId(user._id)}
+    >
+        Delete
+    </Button>
+</td>
                                                     </motion.tr>
                                                 ))
                                             )}
@@ -456,6 +467,10 @@ export default function AdminPage() {
                                                     <XAxis dataKey="date" tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }} axisLine={false} tickLine={false} />
                                                     <YAxis tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} />
                                                     <Tooltip
+                                     formatter={((value: unknown) => {
+    const num = Number(value ?? 0);
+    return [`$${num.toLocaleString()}`, "Revenue"];
+}) as any}
                                                         contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: '12px', border: 'none', color: '#fff' }}
                                                         itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
                                                         cursor={{ fill: 'currentColor', opacity: 0.05 }}
@@ -474,6 +489,10 @@ export default function AdminPage() {
                                                     <XAxis dataKey="name" tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }} axisLine={false} tickLine={false} />
                                                     <YAxis tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} />
                                                     <Tooltip
+                                                formatter={((value: unknown) => {
+    const num = Number(value ?? 0);
+    return [`$${num.toLocaleString()}`, "Revenue"];
+}) as any}
                                                         contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: '12px', border: 'none', color: '#fff' }}
                                                         itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
                                                         cursor={{ fill: 'currentColor', opacity: 0.05 }}
@@ -485,12 +504,40 @@ export default function AdminPage() {
                                             <div className="flex items-center justify-center h-full text-muted-foreground bg-muted/20 rounded-2xl border border-border/50">No monthly revenue data yet.</div>
                                         )
                                     )}
+                                    
                                 </div>
                             </div>
                         </div>
                     )}
                 </div>
             </main>
+            {deleteUserId && (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-background text-foreground border border-border p-6 rounded-xl shadow-xl w-[400px]">
+            <h2 className="text-lg font-bold mb-4">Confirm Delete</h2>
+
+            <p className="mb-6 text-sm text-muted-foreground">
+                Are you sure you want to delete this user?
+            </p>
+
+            <div className="flex justify-end gap-4">
+                <Button
+                    variant="outline"
+                    onClick={() => setDeleteUserId(null)}
+                >
+                    Cancel
+                </Button>
+
+                <Button
+                    variant="destructive"
+                    onClick={handleDeleteUser}
+                >
+                    Delete
+                </Button>
+            </div>
+        </div>
+    </div>
+)}
         </div>
     );
 }

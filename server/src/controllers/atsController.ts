@@ -1,144 +1,302 @@
+
+
+/////////////////////
 import { Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import User from '../models/User';
+import { AI_COSTS } from '../config/aiCosts';
 
-export const getAtsScore = async (req: Request, res: Response) => {
-    try {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-        const { resumeData, jobDescription } = req.body;
-
-        if (!resumeData || !jobDescription) {
-            return res.status(400).json({ message: 'Resume data and job description are required.' });
-        }
-
-        if (!process.env.GEMINI_API_KEY) {
-            console.error('ATS Error: GEMINI_API_KEY is missing from environment variables.');
-            return res.status(500).json({ message: 'Gemini API key is not configured.' });
-        }
-
-        const model = genAI.getGenerativeModel({ 
-            model: 'gemini-3-flash-preview',
-            generationConfig: { temperature: 0 }
-        });
-
-        const prompt = `
-You are an expert ATS (Applicant Tracking System) scanner. 
-I will provide you with a Job Description and Candidate Resume Data in JSON format.
-Your task is to evaluate the resume against the job description and provide:
-1. An overall ATS score out of 100.
-2. A list of matching keywords found in the resume.
-3. A list of missing keywords from the job description that the resume lacks.
-4. A short paragraph of suggestions for improvement.
-5. also dont give different ats score for same resume 
-
-Must respond ONLY with a valid JSON object matching this structure exactly (no markdown formatting, no extra text):
-{
-  "score": 85,
-  "matchingKeywords": ["Node.js", "React"],
-  "missingKeywords": ["AWS", "Docker"],
-  "suggestions": "Add more details about cloud deployments."
-}
-
-Job Description:
-${jobDescription}
-
-Candidate Resume Data (JSON):
-${JSON.stringify(resumeData)}
-`;
-
-        console.log('Sending prompt to Gemini...');
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const responseText = response.text();
-        
-        if (!responseText) {
-            console.error('ATS Error: Gemini returned an empty response.');
-            return res.status(500).json({ message: 'Empty response from AI.' });
-        }
-
-        // Extract JSON from response text in case Gemini wraps it in markdown blocks
-        let jsonStr = responseText.trim();
-        if (jsonStr.startsWith('\`\`\`json')) {
-            jsonStr = jsonStr.substring(7, jsonStr.lastIndexOf('\`\`\`')).trim();
-        } else if (jsonStr.startsWith('\`\`\`')) {
-            jsonStr = jsonStr.substring(3, jsonStr.lastIndexOf('\`\`\`')).trim();
-        }
-
-        let atsData;
-        try {
-            atsData = JSON.parse(jsonStr);
-        } catch (err) {
-            console.error('ATS Error: Failed to parse Gemini JSON:', jsonStr);
-            return res.status(500).json({ message: 'Failed to parse AI response.', raw: jsonStr });
-        }
-
-        res.status(200).json(atsData);
-
-    } catch (error: any) {
-        console.error('Error generating ATS score:', error);
-        res.status(500).json({ message: 'Internal server error while evaluating ATS score.', error: error.message });
-    }
+// Helper: extract JSON safely
+const extractJSON = (text: string) => {
+  let jsonStr = text.trim();
+  if (jsonStr.startsWith('```json')) {
+    jsonStr = jsonStr.substring(7, jsonStr.lastIndexOf('```')).trim();
+  } else if (jsonStr.startsWith('```')) {
+    jsonStr = jsonStr.substring(3, jsonStr.lastIndexOf('```')).trim();
+  }
+  return JSON.parse(jsonStr);
 };
 
-export const enhanceExperience = async (req: Request, res: Response) => {
+export const getAtsScore = async (req: Request, res: Response) => {
+  console.log('🔥 ATS Controller HIT!');
+  console.log('📦 Request Body:', JSON.stringify(req.body).substring(0, 200));
+  
+  try {
+    // @ts-ignore
+    const userId = req.user?._id;
+    if (!userId) {
+      console.log('❌ No user ID found');
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log('❌ User not found in DB');
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Credit check
+    if (user.credits < AI_COSTS.ATS_SCORE) {
+      console.log('❌ Insufficient credits');
+      return res.status(403).json({ message: 'Not enough credits.' });
+    }
+
+    const { resumeData, jobDescription } = req.body;
+    if (!resumeData || !jobDescription) {
+      console.log('❌ Missing parameters');
+      return res.status(400).json({ message: 'Missing parameters.' });
+    }
+
+    const prompt = `
+    You are an expert ATS scanner. Return ONLY raw JSON structure matching this model:
+    { "score": number, "matchingKeywords": [], "missingKeywords": [], "suggestions": "" }
+    
+    Job Description: ${jobDescription}
+    
+    Resume: ${JSON.stringify(resumeData)}
+    
+    IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, no code blocks. Just pure JSON.
+    `;
+
+    console.log('🤖 Calling OpenRouter API...');
+    
+    // Use direct fetch for OpenRouter compatibility
+    const fetchResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
+        "X-Title": "AI Resume Builder"
+      },
+      body: JSON.stringify({
+        model: "openrouter/free",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a professional ATS scanner. You MUST respond with ONLY valid JSON. No markdown formatting, no code blocks, no explanations. Just the raw JSON object." 
+          },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.3, // Lower temperature for more consistent JSON
+        max_tokens: 2000
+      })
+    });
+
+    console.log('📥 Response Status:', fetchResponse.status);
+
+    if (!fetchResponse.ok) {
+      const errorText = await fetchResponse.text();
+      console.error('❌ OpenRouter API Error:', errorText);
+      return res.status(500).json({ 
+        message: 'AI service error', 
+        error: errorText 
+      });
+    }
+
+    const result = await fetchResponse.json();
+    console.log('✅ Raw Response:', JSON.stringify(result).substring(0, 300));
+
+    const responseText = result.choices?.[0]?.message?.content || "";
+
+    if (!responseText) {
+      console.log('❌ Empty response from AI');
+      return res.status(500).json({ 
+        message: 'Empty AI response',
+        raw: result 
+      });
+    }
+
+    console.log('📝 AI Response Text:', responseText.substring(0, 200));
+
+    let atsData;
     try {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-        const { resumeData, jobDescription } = req.body;
+      atsData = extractJSON(responseText);
+    } catch (err) {
+      console.error('❌ JSON Parse Error:', err);
+      console.error('📄 Failed text:', responseText);
+      return res.status(422).json({ 
+        message: 'Failed to parse AI response', 
+        raw: responseText 
+      });
+    }
 
-        if (!resumeData || !jobDescription) {
-            return res.status(400).json({ message: 'Resume data and job description are required.' });
-        }
+    // Deduct credits
+    user.credits -= AI_COSTS.ATS_SCORE;
+    await user.save();
 
-        if (!process.env.GEMINI_API_KEY) {
-            return res.status(500).json({ message: 'Gemini API key is not configured.' });
-        }
+    console.log('✅ Success! Credits remaining:', user.credits);
+    
+    return res.status(200).json({ 
+      ...atsData, 
+      creditsLeft: user.credits 
+    });
 
-        const model = genAI.getGenerativeModel({ 
-            model: 'gemini-3-flash-preview',
-            generationConfig: { temperature: 0.7 }
-        });
+  } catch (error: any) {
+    console.error('❌ ATS Controller Error:', error);
+    return res.status(500).json({ 
+      message: 'Internal server error', 
+      error: error.message 
+    });
+  }
+};
 
-        const prompt = `
-You are an expert resume writer. I will provide you with a Job Description and a list of Experience Descriptions from a candidate's resume.
-Your task is to REWRITE each experience description to be more impactful, using action verbs and quantifiable achievements based on the job requirements.
 
-CRITICAL RULES:
-1. DO NOT ADD ANY NEW SKILLS that are not already implied in the original description.
-2. DO NOT hallucinate technologies or tools.
-3. Focus solely on improving the impact and clarity of the phrasing (e.g., use "Developed" instead of "Worked on", "Optimized" instead of "Fixed").
-4. If a description is already very strong, you can leave it mostly as is but polished.
-5. Keep the length similar to the original.
+export const enhanceExperience = async (req: Request, res: Response) => {
+  console.log('🔥 Enhance Experience Controller HIT!');
+  
+  try {
+    // @ts-ignore
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
-Must respond ONLY with a valid JSON object matching this structure exactly (no markdown formatting, no extra text):
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.credits < AI_COSTS.ENHANCE_EXPERIENCE) {
+      return res.status(403).json({ message: 'Not enough credits.' });
+    }
+
+    const { resumeData, jobDescription } = req.body;
+    if (!resumeData || !jobDescription) {
+      return res.status(400).json({ message: 'Missing fields.' });
+    }
+
+    const experiences = resumeData.experience || [];
+
+    if (experiences.length === 0) {
+      return res.status(400).json({ message: 'No experiences to enhance.' });
+    }
+
+    const prompt = `You are a professional resume writer. Enhance these work experiences to be more impactful for this specific job.
+
+JOB DESCRIPTION:
+"""
+${jobDescription}
+"""
+
+CURRENT EXPERIENCES:
+"""
+${experiences.map((exp: any, i: number) => 
+  `Experience ${i+1}:
+   Position: ${exp.position || 'N/A'}
+   Company: ${exp.company || 'N/A'}
+   Description: ${exp.description || 'No description'}
+   Dates: ${exp.startDate || '?'} - ${exp.endDate || 'Present'}`
+).join('\n\n')}
+"""
+
+INSTRUCTIONS:
+1. Rewrite each experience description to be more impactful
+2. Use strong action verbs (Led, Developed, Implemented, Optimized, etc.)
+3. Add quantifiable achievements where possible
+4. Tailor the language to match the job description keywords
+5. Keep the same position and company names
+
+Return ONLY a JSON object with this EXACT structure:
 {
   "enhancedExperiences": [
-    "Enhanced description 1...",
-    "Enhanced description 2..."
+    {
+      "position": "Original Position",
+      "company": "Original Company",
+      "startDate": "Original Start",
+      "endDate": "Original End",
+      "description": "Enhanced description with action verbs and metrics"
+    }
   ]
 }
 
-Job Description:
-${jobDescription}
+CRITICAL: Return ONLY the JSON object, nothing else. Keep original position, company, and dates. Only enhance the description.`;
 
-Candidate Experience Descriptions:
-${JSON.stringify((resumeData.experience || []).map((exp: any) => exp.description))}
-`;
+    console.log('🤖 Calling OpenRouter API for enhancement...');
+    
+    const fetchResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
+        "X-Title": "AI Resume Builder"
+      },
+      body: JSON.stringify({
+        model: "openrouter/free",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a professional resume writer. You MUST respond with ONLY valid JSON. Each enhanced experience must include position, company, dates, and enhanced description." 
+          },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.5,
+        max_tokens: 2000
+      })
+    });
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
-        
-        // Extract JSON from response text
-        let jsonStr = responseText.trim();
-        if (jsonStr.startsWith('```json')) {
-            jsonStr = jsonStr.substring(7, jsonStr.lastIndexOf('```')).trim();
-        } else if (jsonStr.startsWith('```')) {
-            jsonStr = jsonStr.substring(3, jsonStr.lastIndexOf('```')).trim();
-        }
-
-        const enhancedData = JSON.parse(jsonStr);
-        res.status(200).json(enhancedData);
-
-    } catch (error: any) {
-        console.error('Error enhancing experience:', error);
-        res.status(500).json({ message: 'Error enhancing experience.', error: error.message });
+    if (!fetchResponse.ok) {
+      const errorText = await fetchResponse.text();
+      console.error('❌ OpenRouter API Error:', errorText);
+      return res.status(500).json({ 
+        message: 'AI service error', 
+        error: errorText 
+      });
     }
+
+    const result = await fetchResponse.json();
+    const responseText = result.choices?.[0]?.message?.content || "";
+
+    console.log('📝 Raw Response:', responseText);
+
+    if (!responseText) {
+      return res.status(500).json({ message: 'Empty AI response' });
+    }
+
+    let enhancedData;
+    try {
+      enhancedData = extractJSON(responseText);
+    } catch (err) {
+      console.error('❌ JSON Parse Error:', err);
+      try {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          enhancedData = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found');
+        }
+      } catch (e2) {
+        return res.status(422).json({ 
+          message: 'Failed to parse AI response', 
+          raw: responseText 
+        });
+      }
+    }
+
+    // Merge enhanced descriptions back with original data
+    const enhancedExperiences = (enhancedData.enhancedExperiences || []).map((enhanced: any, index: number) => {
+      const original = experiences[index] || {};
+      return {
+        ...original,
+        description: enhanced.description || original.description
+      };
+    });
+
+    console.log(`✅ Enhanced ${enhancedExperiences.length} experiences`);
+
+    user.credits -= AI_COSTS.ENHANCE_EXPERIENCE;
+    await user.save();
+
+    return res.status(200).json({ 
+      enhancedExperiences, 
+      creditsLeft: user.credits 
+    });
+
+  } catch (error: any) {
+    console.error('❌ Enhance Controller Error:', error);
+    return res.status(500).json({ 
+      message: 'Internal server error', 
+      error: error.message 
+    });
+  }
 };

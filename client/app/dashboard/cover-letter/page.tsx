@@ -44,15 +44,19 @@ export default function CoverLetterPage() {
     const [jobDescription, setJobDescription] = useState("");
     const [generatedCoverLetter, setGeneratedCoverLetter] = useState("");
     const [copied, setCopied] = useState(false);
+const [credits, setCredits] = useState<number | null>(null);
+   useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (!userData) {
+        router.push("/login");
+        return;
+    }
 
-    useEffect(() => {
-        const userData = localStorage.getItem("user");
-        if (!userData) {
-            router.push("/login");
-            return;
-        }
-        fetchResumes();
-    }, [router]);
+    const parsed = JSON.parse(userData);
+    setCredits(parsed.credits); // ✅ ADD THIS
+
+    fetchResumes();
+}, [router]);
 
     const fetchResumes = async () => {
         try {
@@ -68,38 +72,62 @@ export default function CoverLetterPage() {
         }
     };
 
-    const handleGenerate = async () => {
-        if (!selectedResumeId) {
-            toast.error("Please select a resume first");
-            return;
+ const handleGenerate = async () => {
+    if (!selectedResumeId) {
+        toast.error("Please select a resume first");
+        return;
+    }
+
+    // ✅ block if no credits
+    if (credits !== null && credits <= 0) {
+        toast.error("No credits left. Please upgrade.");
+        return;
+    }
+
+    setGenerating(true);
+    const toastId = toast.loading("Generating your personalized cover letter...");
+
+    try {
+        const response = await api.post("/resumes/generate-cover-letter", {
+            resumeId: selectedResumeId,
+            jobTitle,
+            companyName,
+            jobDescription
+        });
+
+        // ✅ UPDATE CREDITS FROM BACKEND
+        if (response.data?.credits !== undefined) {
+            setCredits(response.data.credits);
+
+            // optional: keep localStorage in sync
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            user.credits = response.data.credits;
+            localStorage.setItem("user", JSON.stringify(user));
         }
 
-        setGenerating(true);
-        const toastId = toast.loading("Generating your personalized cover letter...");
+        const formattedContent = response.data.coverLetter
+            .split('\n\n')
+            .map((para: string) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+            .join('');
 
-        try {
-            const response = await api.post("/resumes/generate-cover-letter", {
-                resumeId: selectedResumeId,
-                jobTitle,
-                companyName,
-                jobDescription
-            });
+        setGeneratedCoverLetter(formattedContent);
 
-            // Convert plain text to HTML with paragraphs
-            const formattedContent = response.data.coverLetter
-                .split('\n\n')
-                .map((para: string) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
-                .join('');
+        toast.success("Cover letter generated!", { id: toastId });
 
-            setGeneratedCoverLetter(formattedContent);
-            toast.success("Cover letter generated!", { id: toastId });
-        } catch (error: any) {
-            const message = error.response?.data?.message || "Failed to generate cover letter";
+    } catch (error: any) {
+        const message = error.response?.data?.message || "Failed to generate cover letter";
+
+        // ✅ CREDIT ERROR HANDLE
+        if (message.toLowerCase().includes("credit")) {
+            toast.error("Not enough credits. Please upgrade.", { id: toastId });
+        } else {
             toast.error(message, { id: toastId });
-        } finally {
-            setGenerating(false);
         }
-    };
+
+    } finally {
+        setGenerating(false);
+    }
+};
 
     const stripHtml = (html: string) => {
         if (typeof window === "undefined") return html;
@@ -147,10 +175,24 @@ export default function CoverLetterPage() {
                             AI Cover Letter
                         </h1>
                     </div>
+                
                 </div>
                 <div className="flex items-center gap-4">
                     <ThemeToggle />
+                   <span className="text-md font-semibold text-muted-foreground">
+    Credits:{" "}
+    <span
+        className={`font-bold ${
+            credits !== null && credits <= 5
+                ? "text-red-500"
+                : "text-primary"
+        }`}
+    >
+        {credits ?? 0}
+    </span>
+</span>
                 </div>
+                
             </header>
 
             <main className="mx-auto max-w-7xl px-8 py-12">
@@ -286,7 +328,7 @@ export default function CoverLetterPage() {
                             )}
                         </div>
 
-                        <div className="flex-1 relative group">
+                        <div className="flex-1 relative group  overflow-y-auto scroll-smooth">
                             <AnimatePresence mode="wait">
                                 {!generatedCoverLetter && !generating ? (
                                     <motion.div
@@ -336,14 +378,15 @@ export default function CoverLetterPage() {
                                             />
                                         </div>
                                         <div className="p-6 bg-muted/30 dark:bg-slate-900/30 border border-border rounded-b-3xl flex items-center justify-center gap-4 no-print">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={handleGenerate}
-                                                className="text-xs font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-colors gap-2"
-                                            >
-                                                <RefreshCw size={14} /> Re-generate with AI
-                                            </Button>
+                                           <Button
+    variant="ghost"
+    size="sm"
+    onClick={handleGenerate}
+    disabled={generating || (credits !== null && credits <= 0)} // ✅ ADD THIS
+    className="text-xs font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-colors gap-2"
+>
+    <RefreshCw size={14} /> Re-generate with AI
+</Button>
                                         </div>
                                     </motion.div>
                                 )}

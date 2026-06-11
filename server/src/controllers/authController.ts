@@ -98,10 +98,22 @@ export const loginUser = async (req: Request, res: Response) => {
 // @route   GET /api/auth/me
 // @access  Private
 export const getMe = async (req: AuthRequest, res: Response) => {
-    const user = await User.findById(req.user._id).select('-password -stripeCustomerId -stripeSubscriptionId');
-    res.status(200).json(user);
-};
+    const user = await User.findById(req.user._id)
+        .select('-password -stripeCustomerId -stripeSubscriptionId');
 
+    if (!user) {
+        return res.status(404).json({ message: "User not found" });
+    }
+
+    const userObj = user.toObject();
+
+    // ✅ KEY FIX
+   return res.status(200).json({
+    ...userObj,
+    isUnlimited: user.isSubscribed
+});
+
+};
 // @desc    Refresh token
 // @route   POST /api/auth/refresh
 // @access  Private

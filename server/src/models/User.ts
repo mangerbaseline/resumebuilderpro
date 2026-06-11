@@ -12,6 +12,9 @@ export interface IUser extends Document {
     stripeSubscriptionId?: string;
     resetPasswordToken?: string;
     resetPasswordExpire?: Date;
+    aiUsageCount: number;
+        plan: 'free' | 'pro';
+    credits: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -29,6 +32,9 @@ const UserSchema: Schema = new Schema(
         stripeSubscriptionId: { type: String },
         resetPasswordToken: String,
         resetPasswordExpire: Date,
+        aiUsageCount: { type: Number, default: 0 },
+      plan: { type: String, enum: ['free', 'pro'], default: 'free' },
+      credits: { type: Number, default: 10 },
     },
     { timestamps: true }
 );

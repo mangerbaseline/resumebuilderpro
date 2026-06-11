@@ -1,3 +1,4 @@
+
 {
   "compilerOptions": {
     "target": "es2020",
@@ -10,6 +11,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "scripts"],
   "exclude": ["node_modules"]
 }
